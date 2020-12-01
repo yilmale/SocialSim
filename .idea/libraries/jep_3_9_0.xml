@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="jep-3.9.0">
+    <CLASSES>
+      <root url="jar:///Library/Frameworks/Python.framework/Versions/3.8/lib/python3.8/site-packages/jep/jep-3.9.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
