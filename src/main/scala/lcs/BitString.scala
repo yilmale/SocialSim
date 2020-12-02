@@ -5,20 +5,12 @@ import breeze.linalg._
 trait BitStringBase {
   var bv : BitVector
   def random(length: Int, bitProb: Double): Unit = {
-    
+
   }
   def mutate(): Unit =  {
 
   }
 
-  def translate(bv: BitVector) : String = {
-    var str : String = ""
-    bv.iterator foreach {b =>
-      if (b._2) str = str + "1"
-      else str = str + "0"
-    }
-    str
-  }
 
 }
 
@@ -37,5 +29,14 @@ class BitString(bits: String) extends BitStringBase {
 object BitString {
   def apply(bits: String): BitString = {
     new BitString(bits)
+  }
+
+  def translate(bv: BitVector) : String = {
+    var str : String = ""
+    bv.iterator foreach {b =>
+      if (b._2) str = str + "1"
+      else str = str + "0"
+    }
+    str
   }
 }

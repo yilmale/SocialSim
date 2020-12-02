@@ -4,6 +4,7 @@ import breeze.linalg._
 import lcs._
 
 
+
 object SocialSimMain extends App {
   print("hello")
 
@@ -36,8 +37,8 @@ object SocialSimMain extends App {
     println(x._1 + " -> " + x._2)
   }
 
-  var str = bs1.translate(bv1)
-  println(str)
+
+
 
 }
 
