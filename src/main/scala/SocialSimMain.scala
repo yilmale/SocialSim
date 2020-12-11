@@ -1,9 +1,13 @@
 import PythonUtilities.{executeModule, interp, loadModule}
-
 import breeze.linalg._
 import breeze.linalg.operators.BitVectorOps
 import lcs._
 import BitString._
+import lcs.Constants.beta
+
+import scala.io.Source
+
+
 
 
 
@@ -14,11 +18,16 @@ object SocialSimMain extends App {
   //var result1 = executeModule("performExperiments")
   //println(result1)
 
-  var bs1 : BitString = BitString("001100110011")
-  var bs2 : BitString = BitString("0011##110011")
+  var ucs : UCS = new UCS()
+  ucs.run()
 
-  println(bs2.encode())
-  println(decode(bs2))
+
+
+
+
+
+
+
 
 
 

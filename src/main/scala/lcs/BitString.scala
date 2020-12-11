@@ -1,6 +1,7 @@
 package lcs
 
 import breeze.linalg._
+import Constants._
 
 object Ternary extends Enumeration {
   type Ternary = Value
@@ -38,7 +39,6 @@ class BitString(val bits: String) {
 }
 
 object BitString {
-  var rng : scala.util.Random = new scala.util.Random()
   def apply(bits: String): BitString = {
     new BitString(bits)
   }
