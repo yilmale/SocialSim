@@ -1,8 +1,40 @@
 package lcs
 import Constants._
 
+class Condition {
+  var data : Option[BitString] = None
 
-class Classifier(setSize: Int, situation: Condition, act: Phenotype, time: Int) {
+  def set(bits: String): Unit = {
+    data = Some(BitString(bits) )
+  }
+}
+
+object Condition {
+  def apply(bits:String): Condition = {
+    val cnd : Condition = new Condition()
+    cnd.set(bits)
+    cnd
+  }
+}
+
+class Phenotype {
+  var data : Option[BitString] = None
+
+  def set(bits: String): Unit = {
+    data = Some(BitString(bits) )
+  }
+}
+
+object Phenotype {
+  def apply(bits:String): Phenotype = {
+    val ptype : Phenotype = new Phenotype()
+    ptype.set(bits)
+    ptype
+  }
+}
+
+class Classifier(setSize: Int, situation: Condition, act: Phenotype, time: Int)
+  extends ClassifierRule[Condition,Phenotype,Boolean] {
   var condition: Condition = situation
   var action: Phenotype = act
   var fitness: Double = initialFitness
@@ -24,84 +56,6 @@ class Classifier(setSize: Int, situation: Condition, act: Phenotype, time: Int) 
     true
   }
 
-  def updateExperience(): Unit = {
-    matchCount = matchCount + 1
-  }
-
-  def updateCorrect(): Unit = {
-    correctCount = correctCount + 1
-  }
-
-  def updateAccuracy(): Unit = {
-    accuracy = correctCount.toDouble / matchCount.toDouble
-  }
-
-  def updateFitness(): Unit = {
-    fitness = Math.pow(accuracy,nu)
-  }
-
-  def updateMatchSetSize(numerositySum: Int): Unit = {
-    if (matchCount < 1.0 / beta)
-      avgMatchSize = avgMatchSize + (numerositySum - avgMatchSize)/matchCount
-    else avgMatchSize = avgMatchSize + (beta * (numerositySum - avgMatchSize)).toInt
-  }
-
-  def updateNumerosity(num: Int): Unit = {
-    numerosity += num
-  }
-
-  def setAccuracy(acc: Double): Unit = {
-    accuracy = acc
-  }
-
-  def setFitness(fit: Double): Unit = {
-    fitness = fit
-  }
-
-  def updateTimeStamp(step: Int): Unit = {
-    timeStampGA = step
-  }
-
-  def deletionVote(meanFitness: Double): Double = {
-    var vote : Double = 0.0
-    if ((fitness/numerosity > delta ) || (matchCount > theta_del))
-      vote = avgMatchSize * numerosity
-    else if (fitness == 0) vote = avgMatchSize * numerosity * meanFitness / (initialFitness/numerosity)
-    else vote = avgMatchSize * numerosity * meanFitness / (fitness/numerosity)
-    vote
-  }
-
-  def isSubsumer: Boolean = {
-    var canSubsume : Boolean = false
-    if ((matchCount > theta_sub) && (accuracy > acc_sub))
-      canSubsume = true
-    canSubsume
-  }
-
-  def isMoreGeneralThan(cl: Classifier): Boolean = {
-    var isMoreGeneral : Boolean = true
-    if (condition.data.get.wc.cardinality() <= cl.condition.data.get.wc.cardinality())
-      isMoreGeneral = false
-    if (isMoreGeneral) {
-      var i : Int = 0
-      do {
-        if ((condition.data.get.bits(i) != '#') &&
-              (condition.data.get.bits(i) != cl.condition.data.get.bits(i)))
-          isMoreGeneral = false
-        i = i + 1
-      } while ((i < condition.data.get.bits.length) && (isMoreGeneral))
-    }
-    isMoreGeneral
-  }
-
-  def subsumes(cl: Classifier): Boolean = {
-    var doesSubsume : Boolean = false
-    if (action.data.get.bits.equals(cl.action.data.get.bits)) {
-      if (isSubsumer && isMoreGeneralThan(cl)) doesSubsume = true
-    }
-    doesSubsume
-  }
-
   def report(): String = {
     var cnd: String = condition.data.get.bits
     var act: String = action.data.get.bits
@@ -110,13 +64,42 @@ class Classifier(setSize: Int, situation: Condition, act: Phenotype, time: Int) 
       s"\nNumerosity: $numerosity"
   }
 
+  def getPhenotypeData: String = {
+    action.data.get.bits
+  }
+
+  def getConditionData: String = {
+    condition.data.get.bits
+  }
+
+  def getWCCardinality: Int = {
+    condition.data.get.wc.cardinality()
+  }
+
+  def isMoreGeneralThan: ClassifierRule[Condition,Phenotype,Boolean] => Boolean = {cl =>
+    var isMoreGeneral : Boolean = true
+    if (condition.data.get.wc.cardinality() <= cl.condition.data.get.wc.cardinality())
+      isMoreGeneral = false
+    if (isMoreGeneral) {
+      var i : Int = 0
+      do {
+        if ((condition.data.get.bits(i) != '#') &&
+          (condition.data.get.bits(i) != cl.condition.data.get.bits(i)))
+          isMoreGeneral = false
+        i = i + 1
+      } while ((i < condition.data.get.bits.length) && (isMoreGeneral))
+    }
+    isMoreGeneral
+  }
+
 }
+
 
 
 object ClassifierCover {
   def apply(setSize: Int, situation: Condition, act: Phenotype, time: Int): Classifier = {
-    var cnd : Condition = new Condition()
-    var context : String = situation.data.get.bits
+    val cnd : Condition = new Condition()
+    val context : String = situation.data.get.bits
     var str = new StringBuilder("")
 
     for (i <- 0 until context.length) {
@@ -132,7 +115,7 @@ object ClassifierCover {
 
 object ClassifierGen {
   def apply(cl: Classifier): Classifier = {
-    var gen = new Classifier(1,
+    val gen = new Classifier(1,
       Condition(cl.condition.data.get.bits),
       Phenotype(cl.action.data.get.bits),
       cl.timeStampGA
@@ -144,5 +127,6 @@ object ClassifierGen {
     gen
   }
 }
+
 
 

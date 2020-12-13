@@ -17,4 +17,5 @@ object Constants {
   var theta_sub : Int = 20
   var acc_sub : Double = 0.99
   var doSubsumption : Boolean = true
+  var supervised : Boolean = true
 }

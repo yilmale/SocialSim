@@ -19,7 +19,9 @@ object SocialSimMain extends App {
   //println(result1)
 
   var ucs : UCS = new UCS()
-  ucs.run()
+  var mux : Scenario[Condition,Phenotype,Boolean] = new MultiplexProblem(2000)
+  ucs.run(mux)
+  ucs.report(cl => (cl.fitness > 0.8) && (cl.accuracy > 0.8))
 
 
 
