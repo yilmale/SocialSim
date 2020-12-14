@@ -13,34 +13,62 @@ trait ClassifierPopulation[Condition,Action,Reward] {
   var previousActionSet: List[ClassifierType] = List()
 
   def getActionData : Action => String
-  def classifierCover: (Int, Condition, Action, Int) => ClassifierType
+
+  def possibleActions : Scenario[Condition,Action,Reward] => scala.collection.immutable.Set[String] = {s =>
+    s.possibleActions.map(a => getActionData(a)).toSet}
+
+  def availableActions : scala.collection.immutable.Set[String] = {
+    var actionSet: Set[String] = Set()
+    matchSet foreach { mr =>
+      actionSet = actionSet + getActionData(mr.action)
+    }
+    actionSet
+  }
+/*
+  def selectRandomAction : Set[String] => Action = {s =>
+    s.copyToArray(elems)
+  }
+*/
+  def initializeClassifier : Condition => ClassifierType
+  def getActionCount : Int = {
+    var actionSet: Set[String] = Set()
+    matchSet foreach { mr =>
+      actionSet = actionSet + getActionData(mr.action)
+    }
+    actionSet.size
+  }
+
+  def classifierCover: (Condition, Scenario[Condition,Action,Reward]) => ClassifierType = {(c,s) =>
+    var cnd = initializeClassifier(c)
+    //cnd.action = selectRandomAction(possibleActions(s).diff(availableActions))
+    cnd
+  }
   def classifierGenerator: ClassifierType => ClassifierType
   def applyMutation(cl: ClassifierType,c: Condition, p: Action): Unit
   def applyCrossOver(cl1: ClassifierType, cl2: ClassifierType): Unit
-  def numberOfActions: List[ClassifierType] => Int
+
 
   def addClassifierToPopulation(cl: ClassifierType) : Unit = {
     popSet = cl :: popSet
-    microPopSize += 1
   }
 
-  def makeMatchSet(dataInstance: Condition, step: Int): Unit = {
+  def makeMatchSet(dataInstance: Condition, scenario: Scenario[Condition,Action,Reward]):
+  List[ClassifierType] = {
     val state = dataInstance
-
     matchSet = List()
     while (matchSet.isEmpty) {
       popSet foreach { cl =>
         if (cl.conditionMatch(state)) {
           matchSet = cl :: matchSet
         }
-
-        var actionSet: Set[String] = Set()
-        matchSet foreach { mr =>
-          actionSet = actionSet + getActionData(mr.action)
+        if (getActionCount < theta_minaction) {
+          addClassifierToPopulation(classifierCover(state, scenario))
+          deleteFromPopulation()
+          matchSet = List()
         }
-
       }
     }
+    matchSet
   }
 
 

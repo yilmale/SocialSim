@@ -25,21 +25,26 @@ object SocialSimMain extends App {
 
 */
 
-  var p1 = Phenotype("11")
-  var p2 = Phenotype("00")
-  var p3 = Phenotype("01")
-  var p4 = Phenotype("00")
+  var p1 = Phenotype("11").data.get.bits
+  var p2 = Phenotype("00").data.get.bits
+  var p3 = Phenotype("01").data.get.bits
+  var p4 = Phenotype("10").data.get.bits
 
-  var L : List[Phenotype] = List()
-  L = List(p1,p2,p3,p4)
+  var L : Set[String] = Set()
+  L = Set(p1,p2,p3,p4)
+  L foreach {a => println(a)}
+  println("-------")
+  var K : Set[String] = Set()
+  K = Set(p1)
+  K foreach {a => println(a)}
+  println("-------")
 
+  var actionSet = L.diff(K)
+  actionSet foreach {a => println(a)}
 
-  var actionSet : Set[Phenotype] = Set()
-  L foreach {mr =>
-    actionSet = actionSet + mr
-  }
-
-  println(actionSet.size)
+  println("-------")
+  var A = actionSet.toArray
+  for (i <- A.indices) println(A(i))
 
 
 

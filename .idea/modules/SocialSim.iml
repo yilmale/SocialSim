@@ -81,5 +81,7 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="jep-3.9.0" level="project" />
+    <orderEntry type="library" name="scala-sdk-2.13.3" level="project" />
+    <orderEntry type="library" name="Python 3.8 (ExploratorySimWorkbench) interpreter library" level="application" />
   </component>
 </module>

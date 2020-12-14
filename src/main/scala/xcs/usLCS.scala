@@ -26,7 +26,7 @@ trait usLCS[Condition,Action,Reward] {
     println("Beginning learning iterations.")
     while (s.more) {
       val situation = s.sense
-      val M = makeMatchSet(situation,s.steps)
+      val M = makeMatchSet(situation,s)
       val PA = generatePredictionArray(M)
       val act = selectAction(PA)
       generateActionSet(act)
@@ -50,11 +50,9 @@ trait usLCS[Condition,Action,Reward] {
     }
   }
 
-
-
-
-  def makeMatchSet : (TrainingInstance, Int) => List[ClassifierType] = {(instance,step) =>
-    classifierEnsemble.makeMatchSet(instance,step)
+  def makeMatchSet : (TrainingInstance, Scenario[Condition,Action,Reward]) =>
+    List[ClassifierType] = {(instance,s) =>
+    classifierEnsemble.makeMatchSet(instance,s)
     classifierEnsemble.matchSet
   }
 
