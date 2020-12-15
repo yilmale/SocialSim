@@ -45,6 +45,9 @@ object SocialSimMain extends App {
   println("-------")
   var A = actionSet.toArray
   for (i <- A.indices) println(A(i))
+  println("-------")
+  var idx : Int = xcs.Constants.rng.nextInt(A.length)
+  println(A(idx))
 
 
 

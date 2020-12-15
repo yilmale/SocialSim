@@ -13,22 +13,26 @@ trait ClassifierPopulation[Condition,Action,Reward] {
   var previousActionSet: List[ClassifierType] = List()
 
   def getActionData : Action => String
+  def generateAction : String => Action
 
   def possibleActions : Scenario[Condition,Action,Reward] => scala.collection.immutable.Set[String] = {s =>
     s.possibleActions.map(a => getActionData(a)).toSet}
 
   def availableActions : scala.collection.immutable.Set[String] = {
-    var actionSet: Set[String] = Set()
+    var actionSet: scala.collection.immutable.Set[String] = Set()
     matchSet foreach { mr =>
       actionSet = actionSet + getActionData(mr.action)
     }
     actionSet
   }
-/*
+
+
   def selectRandomAction : Set[String] => Action = {s =>
-    s.copyToArray(elems)
+    val elems = s.toArray
+    generateAction(elems(rng.nextInt(elems.length)))
   }
-*/
+
+
   def initializeClassifier : Condition => ClassifierType
   def getActionCount : Int = {
     var actionSet: Set[String] = Set()
@@ -40,9 +44,11 @@ trait ClassifierPopulation[Condition,Action,Reward] {
 
   def classifierCover: (Condition, Scenario[Condition,Action,Reward]) => ClassifierType = {(c,s) =>
     var cnd = initializeClassifier(c)
-    //cnd.action = selectRandomAction(possibleActions(s).diff(availableActions))
+    cnd.action = selectRandomAction(possibleActions(s).diff(availableActions))
+    cnd.prediction = initialPrediction
     cnd
   }
+
   def classifierGenerator: ClassifierType => ClassifierType
   def applyMutation(cl: ClassifierType,c: Condition, p: Action): Unit
   def applyCrossOver(cl1: ClassifierType, cl2: ClassifierType): Unit
@@ -72,13 +78,6 @@ trait ClassifierPopulation[Condition,Action,Reward] {
   }
 
 
-  def makeCorrectSet(ptype: Action): Unit = {
-    val action: String = getActionData(ptype)
-    matchSet foreach {mcl =>
-      val proposedAction : String = mcl.getPhenotypeData
-      if (proposedAction.equals(action)) correctSet = mcl :: correctSet
-    }
-  }
 
   def updateSets(step: Int): Unit = {
     var matchSetNumerosity : Int = 0

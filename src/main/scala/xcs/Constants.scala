@@ -17,7 +17,9 @@ object Constants {
   var theta_sub: Int = 20
   var acc_sub: Double = 0.99
   var doSubsumption: Boolean = true
+
   var discountFactor : Double = 0.71
   var theta_minaction : Int = 2
+  var initialPrediction : Double = 0.0
 
 }

@@ -5,6 +5,7 @@ import Constants._
 trait ClassifierRule[Condition,Action,Reward] {
   var condition: Condition
   var action: Action
+  var prediction : Double
   var fitness: Double
   var accuracy: Double
   var matchCount: Int
