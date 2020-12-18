@@ -6,7 +6,7 @@ trait sLCS[Condition,Action,Reward] {
   type ClassifierType = ClassifierRule[Condition,Action,Reward]
   type ClassifierPopType = ClassifierPopulation[Condition,Action,Reward]
   val classifierEnsemble : ClassifierPopType
-  type TrainingInstance = Tuple2[Condition,Action]
+  type TrainingInstance = (Condition, Action)
   def action : TrainingInstance => Action = {instance => instance._2}
   def condition: TrainingInstance => Condition = {instance => instance._1}
   def population : ClassifierPopType = classifierEnsemble
@@ -17,7 +17,7 @@ trait sLCS[Condition,Action,Reward] {
       makeMatchSet(situation,s.steps)
       makeCorrectSet(action(situation))
       s.execute(action(situation))
-      updateSets(s.steps)
+      updateSets()
       if (doSubsumption) doCorrectSetSubsumption()
       run_GA(s.steps, condition(situation), action(situation))
       clearSets()
@@ -34,8 +34,8 @@ trait sLCS[Condition,Action,Reward] {
     classifierEnsemble.correctSet
   }
 
-  def updateSets(step: Int) : ClassifierPopType = {
-    classifierEnsemble.updateSets(step)
+  def updateSets() : ClassifierPopType = {
+    classifierEnsemble.updateSets()
     classifierEnsemble
   }
 

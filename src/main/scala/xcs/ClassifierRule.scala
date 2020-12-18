@@ -7,6 +7,11 @@ trait ClassifierRule[Condition,Action,Reward] {
   var action: Action
   var prediction : Double
   var fitness: Double
+  var error: Double
+  var experience : Int
+  var timeStamp : Int
+  var actionSetSize : Double
+
   var accuracy: Double
   var matchCount: Int
   var correctCount: Int
@@ -23,33 +28,42 @@ trait ClassifierRule[Condition,Action,Reward] {
   def isMoreGeneralThan: ClassifierRule[Condition,Action,Reward] => Boolean
 
   def updateExperience(): Unit = {
-    matchCount = matchCount + 1
+    experience = experience + 1
   }
 
-  def updateCorrect(): Unit = {
-    correctCount = correctCount + 1
+  def updatePrediction(P: Double): Unit = {
+    if (experience < 1.0/beta)
+      prediction = prediction + ((P - prediction)/experience)
+    else prediction = prediction + (beta * (P - prediction))
   }
 
-  def updateAccuracy(): Unit = {
-    accuracy = correctCount.toDouble / matchCount.toDouble
+  def updatePredictionError(P: Double): Unit = {
+    if (experience < 1.0/beta)
+      error = error + ((Math.abs(P - prediction) - error)/experience)
+    else error = error + (beta * (Math.abs(P - prediction) - error))
   }
+
+  def updateActionSetSizeEstimate(P: Double, numerositySum: Int): Unit = {
+    if (experience < 1.0/beta)
+      actionSetSize = actionSetSize + ((numerositySum - numerosity)/experience)
+    else actionSetSize = actionSetSize + (beta * (numerositySum - numerosity))
+  }
+
 
   def updateFitness(): Unit = {
     fitness = Math.pow(accuracy,nu)
-  }
-
-  def updateMatchSetSize(numerositySum: Int):  Unit = {
-    if (matchCount < 1.0 / beta)
-      avgMatchSize = avgMatchSize + (numerositySum - avgMatchSize)/matchCount
-    else avgMatchSize = avgMatchSize + (beta * (numerositySum - avgMatchSize)).toInt
   }
 
   def updateNumerosity(num: Int): Unit = {
     numerosity += num
   }
 
-  def setAccuracy(acc: Double): Unit = {
-    accuracy = acc
+  def setPrediction(p: Double): Unit = {
+    prediction = p
+  }
+
+  def setError(e: Double): Unit = {
+    error = e
   }
 
   def setFitness(fit: Double): Unit = {
@@ -71,7 +85,7 @@ trait ClassifierRule[Condition,Action,Reward] {
 
   def isSubsumer: Boolean = {
     var canSubsume : Boolean = false
-    if ((matchCount > theta_sub) && (accuracy > acc_sub))
+    if ((experience > theta_sub) && (error < errorThreshold))
       canSubsume = true
     canSubsume
   }

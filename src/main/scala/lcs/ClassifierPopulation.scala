@@ -21,7 +21,7 @@ trait ClassifierPopulation[Condition,Action,Reward] {
     microPopSize += 1
   }
 
-  def makeMatchSet(dataInstance: Tuple2[Condition,Action], step: Int): Unit = {
+  def makeMatchSet(dataInstance: (Condition, Action), step: Int): Unit = {
     val state = dataInstance._1
     val phenotype = dataInstance._2
     var doCovering : Boolean = true
@@ -57,7 +57,7 @@ trait ClassifierPopulation[Condition,Action,Reward] {
     }
   }
 
-  def updateSets(step: Int): Unit = {
+  def updateSets(): Unit = {
     var matchSetNumerosity : Int = 0
     matchSet foreach {cl =>
       matchSetNumerosity = matchSetNumerosity + cl.numerosity
@@ -97,10 +97,10 @@ trait ClassifierPopulation[Condition,Action,Reward] {
       // INITIALIZE OFFSPRING
       // --------------------------------------------------------
 
-      var parent1 = selectOffSpring().get
-      var parent2 = selectOffSpring().get
-      var child1 = classifierGenerator(parent1)
-      var child2 = classifierGenerator(parent2)
+      val parent1 = selectOffSpring().get
+      val parent2 = selectOffSpring().get
+      val child1 = classifierGenerator(parent1)
+      val child2 = classifierGenerator(parent2)
 
       // --------------------------------------------------------
       // CROSSOVER OPERATOR
@@ -136,13 +136,13 @@ trait ClassifierPopulation[Condition,Action,Reward] {
   }
 
   def insertInPopulation(ch: ClassifierType): Unit = {
-    var setIter = popSet.iterator
+    val setIter = popSet.iterator
     var found : Boolean = false
 
     while (setIter.hasNext && !found) {
       val cl = setIter.next()
-      if  ((cl.getConditionData.equals(ch.getConditionData)) &&
-        (cl.getPhenotypeData.equals(ch.getPhenotypeData))) {
+      if  (cl.getConditionData.equals(ch.getConditionData) &&
+        cl.getPhenotypeData.equals(ch.getPhenotypeData)) {
         found = true
         cl.numerosity = cl.numerosity + 1
       }
@@ -190,14 +190,15 @@ trait ClassifierPopulation[Condition,Action,Reward] {
       }
       val choicePoint = rng.nextDouble()* voteSum
       voteSum = 0
-      var setIter = popSet.iterator
+      val setIter = popSet.iterator
       var found : Boolean = false
-      while ((setIter.hasNext) && (!found)) {
-        var c: ClassifierType = setIter.next()
+      while (setIter.hasNext && (!found)) {
+        val c: ClassifierType = setIter.next()
         voteSum = voteSum + c.deletionVote(avgFitness)
         if (voteSum > choicePoint) {
           if (c.numerosity > 1) c.numerosity = c.numerosity - 1
           else removeMacroClassifier(c)
+          found = true
         }
       }
     }
@@ -214,7 +215,7 @@ trait ClassifierPopulation[Condition,Action,Reward] {
     fitnessSum = 0.0
     var found : Boolean = false
     val setIter = correctSet.iterator
-    while ((!found) && (setIter.hasNext)) {
+    while ((!found) && setIter.hasNext) {
       val cl = setIter.next()
       fitnessSum = fitnessSum + cl.fitness
       if (fitnessSum >=  choicePoint) {
@@ -229,14 +230,14 @@ trait ClassifierPopulation[Condition,Action,Reward] {
     var subsumer : Option[ClassifierType] = None
     correctSet foreach {cl =>
       if (cl.isSubsumer) {
-        if ((subsumer.isEmpty) ||
-          ((subsumer.isDefined) && (cl.isMoreGeneralThan(subsumer.get))))
+        if (subsumer.isEmpty ||
+          (subsumer.isDefined && cl.isMoreGeneralThan(subsumer.get)))
           subsumer = Some(cl)
       }
     }
 
     if (subsumer.isDefined) {
-      var subsumerCL : ClassifierType = subsumer.get
+      val subsumerCL : ClassifierType = subsumer.get
       correctSet foreach {cl =>
         if (subsumerCL.isMoreGeneralThan(cl)) {
           subsumerCL.updateNumerosity(cl.numerosity)

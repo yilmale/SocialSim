@@ -6,14 +6,15 @@ trait ClassifierPopulation[Condition,Action,Reward] {
   type ClassifierType = ClassifierRule[Condition,Action,Reward]
   var popSet : List[ClassifierType] = List()
   var matchSet : List[ClassifierType] = List()
-  var correctSet : List[ClassifierType] = List()
-  var microPopSize : Int = 0
-
   var currentActionSet: List[ClassifierType] = List()
   var previousActionSet: List[ClassifierType] = List()
 
   def getActionData : Action => String
   def generateAction : String => Action
+  def initializeClassifier : Condition => ClassifierType
+  def classifierGenerator: ClassifierType => ClassifierType
+  def applyMutation(cl: ClassifierType,c: Condition): Unit
+  def applyCrossOver(cl1: ClassifierType, cl2: ClassifierType): Unit
 
   def possibleActions : Scenario[Condition,Action,Reward] => scala.collection.immutable.Set[String] = {s =>
     s.possibleActions.map(a => getActionData(a)).toSet}
@@ -26,14 +27,15 @@ trait ClassifierPopulation[Condition,Action,Reward] {
     actionSet
   }
 
+  def clearActionSet(): Unit = {
+    currentActionSet = List()
+  }
 
   def selectRandomAction : Set[String] => Action = {s =>
     val elems = s.toArray
     generateAction(elems(rng.nextInt(elems.length)))
   }
 
-
-  def initializeClassifier : Condition => ClassifierType
   def getActionCount : Int = {
     var actionSet: Set[String] = Set()
     matchSet foreach { mr =>
@@ -43,19 +45,24 @@ trait ClassifierPopulation[Condition,Action,Reward] {
   }
 
   def classifierCover: (Condition, Scenario[Condition,Action,Reward]) => ClassifierType = {(c,s) =>
-    var cnd = initializeClassifier(c)
-    cnd.action = selectRandomAction(possibleActions(s).diff(availableActions))
-    cnd.prediction = initialPrediction
-    cnd
+    val cl = initializeClassifier(c)
+    cl.action = selectRandomAction(possibleActions(s).diff(availableActions))
+    cl.prediction = initialPrediction
+    cl.error = initialError
+    cl.fitness = initialFitness
+    cl.experience = 0
+    cl.timeStamp = s.steps
+    cl.actionSetSize = 1
+    cl.numerosity = 1
+    cl
   }
-
-  def classifierGenerator: ClassifierType => ClassifierType
-  def applyMutation(cl: ClassifierType,c: Condition, p: Action): Unit
-  def applyCrossOver(cl1: ClassifierType, cl2: ClassifierType): Unit
-
 
   def addClassifierToPopulation(cl: ClassifierType) : Unit = {
     popSet = cl :: popSet
+  }
+
+  def addClassifiertoActionSet(cl: ClassifierType): Unit = {
+    currentActionSet = cl :: currentActionSet
   }
 
   def makeMatchSet(dataInstance: Condition, scenario: Scenario[Condition,Action,Reward]):
@@ -78,51 +85,32 @@ trait ClassifierPopulation[Condition,Action,Reward] {
   }
 
 
-
-  def updateSets(step: Int): Unit = {
-    var matchSetNumerosity : Int = 0
-    matchSet foreach {cl =>
-      matchSetNumerosity = matchSetNumerosity + cl.numerosity
-    }
-    matchSet foreach { mcl =>
-      mcl.updateExperience()
-      mcl.updateMatchSetSize(matchSetNumerosity)
-      mcl.updateAccuracy()
-      mcl.updateFitness()
-    }
-
-    correctSet foreach {ccl =>
-      ccl.updateCorrect()
-    }
-  }
-
   def clearSets(): Unit = {
     matchSet = List()
-    correctSet = List()
   }
 
-  def getIterStampAverage: Double = {
+  def getIterStampAverage(actionSet: List[ClassifierType]): Double = {
     var sumCL : Double = 0.0
     var numSum : Double = 0.0
-    correctSet foreach {cl =>
+    actionSet foreach {cl =>
       sumCL = sumCL + (cl.timeStampGA * cl.numerosity)
       numSum = numSum + cl.numerosity
     }
     sumCL/numSum
   }
 
-  def run_GA(step: Int, c: Condition, p: Action): Unit = {
-    if ((step - getIterStampAverage.toInt) > theta_GA) {
-      updateTimeStamps(step)
+  def run_GA(actionSet: List[ClassifierType],step: Int, c: Condition): Unit = {
+    if ((step - getIterStampAverage(actionSet).toInt) > theta_GA) {
+      updateTimeStamps(actionSet,step)
 
       // --------------------------------------------------------
       // INITIALIZE OFFSPRING
       // --------------------------------------------------------
 
-      var parent1 = selectOffSpring().get
-      var parent2 = selectOffSpring().get
-      var child1 = classifierGenerator(parent1)
-      var child2 = classifierGenerator(parent2)
+      val parent1 = selectOffSpring(actionSet).get
+      val parent2 = selectOffSpring(actionSet).get
+      val child1 = classifierGenerator(parent1)
+      val child2 = classifierGenerator(parent2)
 
       // --------------------------------------------------------
       // CROSSOVER OPERATOR
@@ -130,9 +118,11 @@ trait ClassifierPopulation[Condition,Action,Reward] {
 
       if (rng.nextDouble() < chi) {
         applyCrossOver(child1, child2)
-        child1.setAccuracy((child1.accuracy + child2.accuracy) / 2.0)
+        child1.setPrediction((child1.prediction + child2.prediction) / 2.0)
+        child1.setError((child1.prediction + child2.prediction) / 2.0)
         child1.setFitness(fitnessReduction * (child1.fitness + child2.fitness) / 2.0)
-        child2.setAccuracy(child1.accuracy)
+        child1.setPrediction(child1.prediction)
+        child2.setError(child1.error)
         child2.setFitness(child1.fitness)
       }
 
@@ -143,7 +133,7 @@ trait ClassifierPopulation[Condition,Action,Reward] {
       val childList: List[ClassifierType] = List(child1, child2)
 
       childList foreach { ch =>
-        applyMutation(ch, c, p)
+        applyMutation(ch, c)
         if (doGASubsumption) {
           if (parent1.subsumes(ch))
             parent1.numerosity = parent1.numerosity + 1
@@ -158,13 +148,13 @@ trait ClassifierPopulation[Condition,Action,Reward] {
   }
 
   def insertInPopulation(ch: ClassifierType): Unit = {
-    var setIter = popSet.iterator
+    val setIter = popSet.iterator
     var found : Boolean = false
 
     while (setIter.hasNext && !found) {
       val cl = setIter.next()
-      if  ((cl.getConditionData.equals(ch.getConditionData)) &&
-        (cl.getPhenotypeData.equals(ch.getPhenotypeData))) {
+      if  (cl.getConditionData.equals(ch.getConditionData) &&
+        cl.getPhenotypeData.equals(ch.getPhenotypeData)) {
         found = true
         cl.numerosity = cl.numerosity + 1
       }
@@ -195,13 +185,11 @@ trait ClassifierPopulation[Condition,Action,Reward] {
     popSet = popSet.filter(_ != cl)
   }
 
-  def removeFromMatchSet(cl: ClassifierType): Unit = {
-    matchSet = matchSet.filter(_ != cl)
+  def removeFromActionSet(cl: ClassifierType, actionSetId: Int): Unit = {
+   if (actionSetId == 0) previousActionSet = previousActionSet.filter(_ != cl)
+   else currentActionSet = currentActionSet.filter(_ != cl)
   }
 
-  def removeFromCorrectSet(cl: ClassifierType): Unit = {
-    correctSet = correctSet.filter(_ != cl)
-  }
 
   def deleteFromPopulation(): Unit = {
     if (numerositySum > N) {
@@ -212,31 +200,32 @@ trait ClassifierPopulation[Condition,Action,Reward] {
       }
       val choicePoint = rng.nextDouble()* voteSum
       voteSum = 0
-      var setIter = popSet.iterator
+      val setIter = popSet.iterator
       var found : Boolean = false
-      while ((setIter.hasNext) && (!found)) {
-        var c: ClassifierType = setIter.next()
+      while (setIter.hasNext && (!found)) {
+        val c: ClassifierType = setIter.next()
         voteSum = voteSum + c.deletionVote(avgFitness)
         if (voteSum > choicePoint) {
           if (c.numerosity > 1) c.numerosity = c.numerosity - 1
           else removeMacroClassifier(c)
+          found = true
         }
       }
     }
   }
 
 
-  def selectOffSpring(): Option[ClassifierType] = {
+  def selectOffSpring(actionSet: List[ClassifierType]): Option[ClassifierType] = {
     var fitnessSum: Double = 0.0
     var result: Option[ClassifierType] = None
-    correctSet foreach {cl =>
+    actionSet foreach {cl =>
       fitnessSum = fitnessSum + cl.fitness
     }
     val choicePoint = rng.nextDouble() * fitnessSum
     fitnessSum = 0.0
     var found : Boolean = false
-    val setIter = correctSet.iterator
-    while ((!found) && (setIter.hasNext)) {
+    val setIter = actionSet.iterator
+    while ((!found) && setIter.hasNext) {
       val cl = setIter.next()
       fitnessSum = fitnessSum + cl.fitness
       if (fitnessSum >=  choicePoint) {
@@ -247,31 +236,87 @@ trait ClassifierPopulation[Condition,Action,Reward] {
     result
   }
 
-  def doCorrectSetSubsumption(): Unit = {
+  def doActionSetSubsumption(actionSetId: Int): Unit = {
+    var actionSet : Option[List[ClassifierType]] = None
+    if (actionSetId == 0) actionSet = Some(previousActionSet)
+    else actionSet = Some(currentActionSet)
     var subsumer : Option[ClassifierType] = None
-    correctSet foreach {cl =>
+    var removeList : List[ClassifierType] = List()
+    actionSet.get foreach {cl =>
       if (cl.isSubsumer) {
-        if ((subsumer.isEmpty) ||
-          ((subsumer.isDefined) && (cl.isMoreGeneralThan(subsumer.get))))
+        if (subsumer.isEmpty ||
+          (subsumer.isDefined && cl.isMoreGeneralThan(subsumer.get)))
           subsumer = Some(cl)
       }
     }
 
     if (subsumer.isDefined) {
-      var subsumerCL : ClassifierType = subsumer.get
-      correctSet foreach {cl =>
+      val subsumerCL : ClassifierType = subsumer.get
+      actionSet.get foreach {cl =>
         if (subsumerCL.isMoreGeneralThan(cl)) {
           subsumerCL.updateNumerosity(cl.numerosity)
-          removeMacroClassifier(cl)
-          removeFromMatchSet(cl)
-          removeFromCorrectSet(cl)
+          removeList = cl :: removeList
         }
+      }
+      removeList foreach {cl =>
+        removeMacroClassifier(cl)
+        removeFromActionSet(cl,actionSetId)
       }
     }
   }
 
-  def updateTimeStamps(step: Int): Unit = {
-    correctSet foreach {cl =>
+  def updateFitness(actionSet: List[ClassifierType]): Unit = {
+    var accuracySum : Double = 0.0
+    var accuracyVector : scala.collection.mutable.Map[ClassifierType,Double] =
+      scala.collection.mutable.Map[ClassifierType,Double]()
+    actionSet foreach {cl=>
+      if (cl.error < errorThreshold)
+        accuracyVector += (cl -> 1.0)
+      else accuracyVector += (cl -> alpha*Math.pow(cl.error/errorThreshold,-nu))
+      accuracySum = accuracySum + (accuracyVector(cl)*cl.numerosity)
+    }
+    actionSet foreach {cl=>
+      cl.fitness = cl.fitness + (beta*((accuracyVector(cl) * cl.numerosity/accuracySum)-cl.fitness))
+    }
+
+  }
+
+  def updatePreviousActionSet(P: Double) : Unit = {
+    var actionSetNumerosity : Int = 0
+    previousActionSet foreach {cl =>
+      actionSetNumerosity = actionSetNumerosity + cl.numerosity
+    }
+    previousActionSet foreach {cl=>
+      cl.updateExperience()
+      cl.updatePrediction(P)
+      cl.updatePredictionError(P)
+      cl.updateActionSetSizeEstimate(P,actionSetNumerosity)
+    }
+    updateFitness(previousActionSet)
+    if (doSActionSetSubsumption) doActionSetSubsumption(0)
+
+  }
+
+  def updateCurrentActionSet(P: Double) : Unit = {
+    var actionSetNumerosity : Int = 0
+    currentActionSet foreach {cl =>
+      actionSetNumerosity = actionSetNumerosity + cl.numerosity
+    }
+    currentActionSet foreach {cl=>
+      cl.updateExperience()
+      cl.updatePrediction(P)
+      cl.updatePredictionError(P)
+      cl.updateActionSetSizeEstimate(P,actionSetNumerosity)
+    }
+    updateFitness(currentActionSet)
+    if (doSActionSetSubsumption) doActionSetSubsumption(1)
+
+  }
+
+
+
+  def updateTimeStamps(actionSet: List[ClassifierType],step: Int): Unit = {
+    actionSet foreach {cl =>
       cl.updateTimeStamp(step)
     }
   }
