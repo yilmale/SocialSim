@@ -21,8 +21,7 @@ class MultiplexProblem(cycles: Int) extends Scenario[Condition,Phenotype,Boolean
   var steps : Int = 0
   var currentSituation : Option[Instance] = None
   var remainingCycles : Int = cycles
-  var possibleActions : List[Phenotype] = List(Phenotype("00"),Phenotype("01"),
-    Phenotype("10"),Phenotype("11"))
+  var possibleActions : List[Phenotype] = List(Phenotype("0"),Phenotype("1"))
   def more : Boolean = {
     remainingCycles > 0
   }

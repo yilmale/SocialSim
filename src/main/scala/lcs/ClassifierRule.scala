@@ -61,7 +61,7 @@ trait ClassifierRule[Condition,Action,Reward] {
 
   def deletionVote(meanFitness: Double): Double = {
     var vote : Double = 0.0
-    if ((fitness/numerosity > delta ) || (matchCount > theta_del))
+    if ((fitness/numerosity >= delta * meanFitness ) || (matchCount < theta_del))
       vote = avgMatchSize * numerosity
     else if (fitness == 0) vote = avgMatchSize * numerosity * meanFitness / (initialFitness/numerosity)
     else vote = avgMatchSize * numerosity * meanFitness / (fitness/numerosity)

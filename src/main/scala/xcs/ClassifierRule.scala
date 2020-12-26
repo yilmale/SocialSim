@@ -13,12 +13,9 @@ trait ClassifierRule[Condition,Action,Reward] {
   var actionSetSize : Double
 
   var accuracy: Double
-  var matchCount: Int
-  var correctCount: Int
-  var iniTimeStamp: Int
   var timeStampGA: Int
   var numerosity : Int
-  var avgMatchSize : Int
+
 
   def conditionMatch(c: Condition): Boolean
   def report(): String
@@ -50,10 +47,6 @@ trait ClassifierRule[Condition,Action,Reward] {
   }
 
 
-  def updateFitness(): Unit = {
-    fitness = Math.pow(accuracy,nu)
-  }
-
   def updateNumerosity(num: Int): Unit = {
     numerosity += num
   }
@@ -76,10 +69,10 @@ trait ClassifierRule[Condition,Action,Reward] {
 
   def deletionVote(meanFitness: Double): Double = {
     var vote : Double = 0.0
-    if ((fitness/numerosity > delta ) || (matchCount > theta_del))
-      vote = avgMatchSize * numerosity
-    else if (fitness == 0) vote = avgMatchSize * numerosity * meanFitness / (initialFitness/numerosity)
-    else vote = avgMatchSize * numerosity * meanFitness / (fitness/numerosity)
+    if ((fitness/numerosity >= delta * meanFitness ) || (experience < theta_del))
+      vote = actionSetSize * numerosity
+    else if (fitness == 0) vote = actionSetSize * numerosity * meanFitness / (initialFitness/numerosity)
+    else vote = actionSetSize * numerosity * meanFitness / (fitness/numerosity)
     vote
   }
 

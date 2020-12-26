@@ -11,8 +11,8 @@ trait ClassifierPopulation[Condition,Action,Reward] {
 
   def getActionData : Action => String
   def generateAction : String => Action
-  def initializeClassifier : Condition => ClassifierType
-  def classifierGenerator: ClassifierType => ClassifierType
+  def initializeClassifier : (Condition,Int) => ClassifierType
+  def classifierGenerator(cl: ClassifierType) : ClassifierType
   def applyMutation(cl: ClassifierType,c: Condition): Unit
   def applyCrossOver(cl1: ClassifierType, cl2: ClassifierType): Unit
 
@@ -45,7 +45,7 @@ trait ClassifierPopulation[Condition,Action,Reward] {
   }
 
   def classifierCover: (Condition, Scenario[Condition,Action,Reward]) => ClassifierType = {(c,s) =>
-    val cl = initializeClassifier(c)
+    val cl = initializeClassifier(c,s.steps)
     cl.action = selectRandomAction(possibleActions(s).diff(availableActions))
     cl.prediction = initialPrediction
     cl.error = initialError
@@ -71,16 +71,15 @@ trait ClassifierPopulation[Condition,Action,Reward] {
     matchSet = List()
     while (matchSet.isEmpty) {
       popSet foreach { cl =>
-        if (cl.conditionMatch(state)) {
+        if (cl.conditionMatch(state))
           matchSet = cl :: matchSet
-        }
-        if (getActionCount < theta_minaction) {
+      }
+      if (getActionCount < theta_minaction) {
           addClassifierToPopulation(classifierCover(state, scenario))
           deleteFromPopulation()
           matchSet = List()
         }
       }
-    }
     matchSet
   }
 
@@ -118,9 +117,9 @@ trait ClassifierPopulation[Condition,Action,Reward] {
 
       if (rng.nextDouble() < chi) {
         applyCrossOver(child1, child2)
-        child1.setPrediction((child1.prediction + child2.prediction) / 2.0)
-        child1.setError((child1.prediction + child2.prediction) / 2.0)
-        child1.setFitness(fitnessReduction * (child1.fitness + child2.fitness) / 2.0)
+        child1.setPrediction((parent1.prediction + parent2.prediction) / 2.0)
+        child1.setError((parent1.prediction + parent2.prediction) / 2.0)
+        child1.setFitness(fitnessReduction * (parent1.fitness + parent2.fitness) / 2.0)
         child1.setPrediction(child1.prediction)
         child2.setError(child1.error)
         child2.setFitness(child1.fitness)
