@@ -1,5 +1,4 @@
 import jep.SharedInterpreter
-import jep.SharedInterpreter
 import jep.python.PyCallable
 
 object PythonUtilities {
