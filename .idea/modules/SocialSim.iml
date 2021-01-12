@@ -83,5 +83,6 @@
     </orderEntry>
     <orderEntry type="library" name="scalasim" level="project" />
     <orderEntry type="library" name="jep-3.9.0" level="project" />
+    <orderEntry type="library" name="interactiveActivation" level="project" />
   </component>
 </module>
